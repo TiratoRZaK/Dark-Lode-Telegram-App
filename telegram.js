@@ -17,7 +17,15 @@
 	var bootBar = document.getElementById("boot-bar");
 	var bootFill = document.getElementById("boot-fill");
 	var bootProgress = document.getElementById("boot-progress");
+	var bootCrystal = document.getElementById("boot-crystal");
+	var bootParticles = document.getElementById("boot-particles");
+	var bootMiner = document.getElementById("boot-miner");
+	var bootMine = document.getElementById("boot-mine");
 	var loadingTimer = 0;
+	var strikeTimer = 0;
+	var currentPercent = 0;
+	var finishing = false;
+	var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	var BG = "#0b0d14";
 	// Игра портретная; на десктопе Telegram окно и так узкое, а в браузере
@@ -28,6 +36,8 @@
 		params.get("fullscreen") === "0" ? false :
 		params.get("fullscreen") === "1" ? true :
 		FULLSCREEN_DEFAULT;
+	// ?bootdemo=1 — остановить заставку для локальной проверки анимации.
+	var bootDemo = params.get("bootdemo") === "1";
 
 	function insetValue(object, side) {
 		return object && typeof object[side] === "number" ? object[side] : 0;
@@ -155,13 +165,133 @@
 		}
 	}
 
-	function showProgress(percent) {
+	function positionMiner(percent) {
+		if (!bootBar || !bootMiner) {
+			return;
+		}
+		var track = bootBar.clientWidth;
+		var miner = bootMiner.offsetWidth;
+		var mine = bootMine ? bootMine.offsetWidth : 0;
+		var max = Math.max(0, track - miner - mine + 6);
+		bootMiner.style.transform = "translateX(" + (percent / 100) * max + "px)";
+	}
+
+	function setProgress(percent) {
 		if (!bootBar || !bootFill || !bootProgress) {
 			return;
 		}
-		bootBar.classList.add("determinate");
-		bootFill.style.width = percent + "%";
-		bootProgress.textContent = "Загрузка " + percent + "%";
+		currentPercent = Math.max(0, Math.min(100, percent));
+		bootFill.style.width = currentPercent + "%";
+		bootProgress.textContent =
+			currentPercent > 0 ? "Загрузка " + Math.round(currentPercent) + "%" : "Загрузка…";
+		positionMiner(currentPercent);
+		if (currentPercent >= 100) {
+			finishBoot();
+		}
+	}
+
+	function spawnParticles(kind, count) {
+		if (!bootParticles || reducedMotion) {
+			return;
+		}
+		for (var i = 0; i < count; i++) {
+			var particle = document.createElement("span");
+			particle.className = "boot-particle " + kind;
+			var angle;
+			var distance;
+			if (kind === "shard") {
+				angle = Math.random() * Math.PI * 2;
+				distance = 55 + Math.random() * 90;
+			} else {
+				angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.9;
+				distance = kind === "smoke" ? 25 + Math.random() * 35 : 35 + Math.random() * 55;
+			}
+			particle.style.setProperty("--dx", Math.cos(angle) * distance + "px");
+			particle.style.setProperty("--dy", Math.sin(angle) * distance + "px");
+			particle.style.setProperty("--r", Math.round(Math.random() * 540 - 270) + "deg");
+			particle.style.setProperty("--s", (0.6 + Math.random() * 0.9).toFixed(2));
+			particle.addEventListener("animationend", function () {
+				particle.remove();
+			});
+			bootParticles.appendChild(particle);
+		}
+	}
+
+	function strike() {
+		if (!bootCrystal || finishing) {
+			return;
+		}
+		bootCrystal.classList.remove("hit");
+		void bootCrystal.offsetWidth;
+		bootCrystal.classList.add("hit");
+		spawnParticles("spark", 5);
+		spawnParticles("smoke", 2);
+	}
+
+	function startStrike() {
+		if (strikeTimer || reducedMotion) {
+			return;
+		}
+		// Искры и дым — в момент удара (середина анимации кирки), а не
+		// в начале замаха.
+		strikeTimer = window.setInterval(function () {
+			window.setTimeout(strike, 560);
+		}, 1250);
+	}
+
+	function stopStrike() {
+		if (strikeTimer) {
+			window.clearInterval(strikeTimer);
+			strikeTimer = 0;
+		}
+	}
+
+	function spawnBurst() {
+		spawnParticles("shard", 18);
+		spawnParticles("spark", 10);
+		spawnParticles("smoke", 6);
+	}
+
+	function finishBoot() {
+		if (finishing || !boot) {
+			return;
+		}
+		finishing = true;
+		currentPercent = 100;
+		if (bootFill) {
+			bootFill.style.width = "100%";
+		}
+		if (bootProgress) {
+			bootProgress.textContent = "Загрузка 100%";
+		}
+		try {
+			var track = bootBar.clientWidth;
+			var miner = bootMiner.offsetWidth;
+			var mine = bootMine ? bootMine.offsetWidth : 0;
+			var max = Math.max(0, track - miner - mine + 6);
+			bootMiner.style.transform = "translateX(" + (max + 20) + "px)";
+		} catch (error) {
+			/* без анимации просто уберём заставку */
+		}
+		boot.classList.add("done");
+		spawnBurst();
+		stopStrike();
+		window.setTimeout(removeBoot, 1250);
+	}
+
+	function removeBoot() {
+		if (!boot || boot.classList.contains("hidden")) {
+			return;
+		}
+		stopLoadingWatch();
+		stopStrike();
+		styleGameDocument();
+		boot.classList.add("hidden");
+		window.setTimeout(function () {
+			if (boot.parentNode) {
+				boot.parentNode.removeChild(boot);
+			}
+		}, 450);
 	}
 
 	function stopLoadingWatch() {
@@ -178,7 +308,7 @@
 	 * игра упала — заставку всё равно снимаем, чтобы показать ошибку.
 	 */
 	function watchLoading() {
-		if (loadingTimer || !frame) {
+		if (bootDemo || loadingTimer || !frame) {
 			return;
 		}
 		var started = performance.now();
@@ -188,32 +318,32 @@
 				// about:blank до начала загрузки: канваса ещё нет.
 				if (!doc || !doc.getElementById("canvas")) {
 					if (performance.now() - started > 30000) {
-						hideBoot();
+						removeBoot();
 					}
 					return;
 				}
 				styleGameDocument();
 				if (!doc.getElementById("status")) {
-					hideBoot(); // Godot убрал свой экран — игра пошла
+					finishBoot(); // Godot убрал свой экран — игра пошла
 					return;
 				}
 				var notice = doc.getElementById("status-notice");
 				if (notice && notice.style.display !== "none" && notice.textContent.trim()) {
-					hideBoot(); // показываем ошибку движка
+					removeBoot(); // показываем ошибку движка
 					return;
 				}
 				var progress = doc.getElementById("status-progress");
 				if (progress && progress.max > 0) {
 					var percent = Math.round((progress.value / progress.max) * 100);
 					if (isFinite(percent)) {
-						showProgress(Math.max(0, Math.min(100, percent)));
+						setProgress(Math.max(0, Math.min(100, percent)));
 					}
 				}
 			} catch (error) {
 				/* другой origin — просто ждём загрузки */
 			}
 			if (performance.now() - started > 300000) {
-				hideBoot(); // страховка: 5 минут — уже слишком долго
+				removeBoot(); // страховка: 5 минут — уже слишком долго
 			}
 		}, 200);
 	}
@@ -233,6 +363,17 @@
 	}
 
 	configureTelegram();
+	positionMiner(0);
+	startStrike();
+	window.addEventListener("resize", function () {
+		positionMiner(currentPercent);
+	});
+	// Небольшой отладочный хук: удобно проверить заставку локально.
+	window.__darkLodeBoot = {
+		progress: setProgress,
+		finish: finishBoot,
+		remove: removeBoot,
+	};
 
 	if (frame) {
 		frame.addEventListener("load", watchLoading);
