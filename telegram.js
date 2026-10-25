@@ -14,6 +14,10 @@
 	var root = document.documentElement;
 	var frame = document.getElementById("game");
 	var boot = document.getElementById("boot");
+	var bootBar = document.getElementById("boot-bar");
+	var bootFill = document.getElementById("boot-fill");
+	var bootProgress = document.getElementById("boot-progress");
+	var loadingTimer = 0;
 
 	var BG = "#0b0d14";
 	// Игра портретная; на десктопе Telegram окно и так узкое, а в браузере
@@ -151,10 +155,74 @@
 		}
 	}
 
+	function showProgress(percent) {
+		if (!bootBar || !bootFill || !bootProgress) {
+			return;
+		}
+		bootBar.classList.add("determinate");
+		bootFill.style.width = percent + "%";
+		bootProgress.textContent = "Загрузка " + percent + "%";
+	}
+
+	function stopLoadingWatch() {
+		if (loadingTimer) {
+			window.clearInterval(loadingTimer);
+			loadingTimer = 0;
+		}
+	}
+
+	/*
+	 * Держим заставку, пока Godot реально не начнёт игру, и читаем его
+	 * прогресс из iframe (страницы одного origin). Так вместо немого
+	 * спиннера видно «Загрузка 42%». Если доступ к документу запрещён или
+	 * игра упала — заставку всё равно снимаем, чтобы показать ошибку.
+	 */
+	function watchLoading() {
+		if (loadingTimer || !frame) {
+			return;
+		}
+		var started = performance.now();
+		loadingTimer = window.setInterval(function () {
+			try {
+				var doc = frame.contentDocument;
+				// about:blank до начала загрузки: канваса ещё нет.
+				if (!doc || !doc.getElementById("canvas")) {
+					if (performance.now() - started > 30000) {
+						hideBoot();
+					}
+					return;
+				}
+				styleGameDocument();
+				if (!doc.getElementById("status")) {
+					hideBoot(); // Godot убрал свой экран — игра пошла
+					return;
+				}
+				var notice = doc.getElementById("status-notice");
+				if (notice && notice.style.display !== "none" && notice.textContent.trim()) {
+					hideBoot(); // показываем ошибку движка
+					return;
+				}
+				var progress = doc.getElementById("status-progress");
+				if (progress && progress.max > 0) {
+					var percent = Math.round((progress.value / progress.max) * 100);
+					if (isFinite(percent)) {
+						showProgress(Math.max(0, Math.min(100, percent)));
+					}
+				}
+			} catch (error) {
+				/* другой origin — просто ждём загрузки */
+			}
+			if (performance.now() - started > 300000) {
+				hideBoot(); // страховка: 5 минут — уже слишком долго
+			}
+		}, 200);
+	}
+
 	function hideBoot() {
 		if (!boot || boot.classList.contains("hidden")) {
 			return;
 		}
+		stopLoadingWatch();
 		styleGameDocument();
 		boot.classList.add("hidden");
 		window.setTimeout(function () {
@@ -167,19 +235,16 @@
 	configureTelegram();
 
 	if (frame) {
-		frame.addEventListener("load", hideBoot);
+		frame.addEventListener("load", watchLoading);
 		// Скрипт подключён с defer: iframe мог успеть загрузиться раньше,
-		// чем мы повесили обработчик. Тогда снимаем заставку сразу.
+		// чем мы повесили обработчик. Тогда начинаем следить сразу.
 		try {
 			if (frame.contentDocument && frame.contentDocument.readyState === "complete") {
-				hideBoot();
+				watchLoading();
 			}
 		} catch (error) {
 			/* документ ещё не готов — сработает load */
 		}
-		// Если документ игры не загрузился (нет сети, 404), не держим
-		// заставку вечно — через полминуты покажем, что есть.
-		window.setTimeout(hideBoot, 30000);
 		// Клик по оболочке возвращает фокус игре — на десктопе это нужно
 		// для клавиатуры после переключения вкладок.
 		document.getElementById("stage").addEventListener("pointerdown", function () {

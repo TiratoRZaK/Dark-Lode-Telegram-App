@@ -99,8 +99,9 @@ body {
 	opacity: 1;
 	transition: opacity 0.35s ease;
 	/* Страховка на случай, если telegram.org недоступен и telegram.js
-	 * не успел снять заставку: игра всё равно станет видна. */
-	animation: boot-fallback 0.4s ease 15s forwards;
+	 * не успел снять заставку: игра всё равно станет видна. Обычно
+	 * заставку снимает watchLoading(), как только Godot начал игру. */
+	animation: boot-fallback 0.4s ease 120s forwards;
 }
 
 #boot.hidden {
@@ -166,6 +167,20 @@ body {
 	border-radius: inherit;
 	background: var(--accent);
 	animation: boot-slide 1.4s ease-in-out infinite;
+}
+
+/* Как только Godot сообщил реальный прогресс — полоса становится
+ * определённой, а не бегающей туда-сюда. */
+.boot-bar.determinate span {
+	animation: none;
+	transition: width 0.25s linear;
+}
+
+.boot-progress {
+	margin: 0;
+	font-size: 13px;
+	color: var(--muted);
+	font-variant-numeric: tabular-nums;
 }
 
 @keyframes boot-spin {
