@@ -1,0 +1,11 @@
+*.log
+.env
+.env.*
+id_rsa
+id_dsa
+*.pem
+*.key
+*.keystore
+*.jks
+secrets.*
+.DS_Store
