@@ -17,15 +17,10 @@
 	var bootBar = document.getElementById("boot-bar");
 	var bootFill = document.getElementById("boot-fill");
 	var bootProgress = document.getElementById("boot-progress");
-	var bootCrystal = document.getElementById("boot-crystal");
-	var bootParticles = document.getElementById("boot-particles");
 	var bootMiner = document.getElementById("boot-miner");
-	var bootMine = document.getElementById("boot-mine");
 	var loadingTimer = 0;
-	var strikeTimer = 0;
 	var currentPercent = 0;
 	var finishing = false;
-	var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 	var BG = "#0b0d14";
 	// Игра портретная; на десктопе Telegram окно и так узкое, а в браузере
@@ -158,7 +153,12 @@
 			style.textContent =
 				"html,body{background:#0b0d14 !important;}" +
 				"#status{background-color:#0b0d14 !important;}" +
-				"#status-splash{filter:drop-shadow(0 0 28px rgba(217,164,65,.18));}";
+				"#status-splash{filter:drop-shadow(0 0 28px rgba(217,164,65,.18));}" +
+				// Штатный прогресс Godot синий и спорит с янтарной картиной:
+				// перекрашиваем его в акцент игры.
+				"#status-progress{accent-color:#d9a441;}" +
+				"#status-progress::-webkit-progress-value{background:#d9a441;}" +
+				"#status-progress::-webkit-progress-bar{background:rgba(217,164,65,.18);}";
 			doc.head.appendChild(style);
 		} catch (error) {
 			/* чужой origin или документ ещё не готов */
@@ -171,8 +171,7 @@
 		}
 		var track = bootBar.clientWidth;
 		var miner = bootMiner.offsetWidth;
-		var mine = bootMine ? bootMine.offsetWidth : 0;
-		var max = Math.max(0, track - miner - mine + 6);
+		var max = Math.max(0, track - miner);
 		bootMiner.style.transform = "translateX(" + (percent / 100) * max + "px)";
 	}
 
@@ -190,68 +189,6 @@
 		}
 	}
 
-	function spawnParticles(kind, count) {
-		if (!bootParticles || reducedMotion) {
-			return;
-		}
-		for (var i = 0; i < count; i++) {
-			var particle = document.createElement("span");
-			particle.className = "boot-particle " + kind;
-			var angle;
-			var distance;
-			if (kind === "shard") {
-				angle = Math.random() * Math.PI * 2;
-				distance = 55 + Math.random() * 90;
-			} else {
-				angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.9;
-				distance = kind === "smoke" ? 25 + Math.random() * 35 : 35 + Math.random() * 55;
-			}
-			particle.style.setProperty("--dx", Math.cos(angle) * distance + "px");
-			particle.style.setProperty("--dy", Math.sin(angle) * distance + "px");
-			particle.style.setProperty("--r", Math.round(Math.random() * 540 - 270) + "deg");
-			particle.style.setProperty("--s", (0.6 + Math.random() * 0.9).toFixed(2));
-			particle.addEventListener("animationend", function () {
-				particle.remove();
-			});
-			bootParticles.appendChild(particle);
-		}
-	}
-
-	function strike() {
-		if (!bootCrystal || finishing) {
-			return;
-		}
-		bootCrystal.classList.remove("hit");
-		void bootCrystal.offsetWidth;
-		bootCrystal.classList.add("hit");
-		spawnParticles("spark", 5);
-		spawnParticles("smoke", 2);
-	}
-
-	function startStrike() {
-		if (strikeTimer || reducedMotion) {
-			return;
-		}
-		// Искры и дым — в момент удара (середина анимации кирки), а не
-		// в начале замаха.
-		strikeTimer = window.setInterval(function () {
-			window.setTimeout(strike, 560);
-		}, 1250);
-	}
-
-	function stopStrike() {
-		if (strikeTimer) {
-			window.clearInterval(strikeTimer);
-			strikeTimer = 0;
-		}
-	}
-
-	function spawnBurst() {
-		spawnParticles("shard", 18);
-		spawnParticles("spark", 10);
-		spawnParticles("smoke", 6);
-	}
-
 	function finishBoot() {
 		if (finishing || !boot) {
 			return;
@@ -264,18 +201,8 @@
 		if (bootProgress) {
 			bootProgress.textContent = "Загрузка 100%";
 		}
-		try {
-			var track = bootBar.clientWidth;
-			var miner = bootMiner.offsetWidth;
-			var mine = bootMine ? bootMine.offsetWidth : 0;
-			var max = Math.max(0, track - miner - mine + 6);
-			bootMiner.style.transform = "translateX(" + (max + 20) + "px)";
-		} catch (error) {
-			/* без анимации просто уберём заставку */
-		}
+		positionMiner(100);
 		boot.classList.add("done");
-		spawnBurst();
-		stopStrike();
 		window.setTimeout(removeBoot, 1250);
 	}
 
@@ -284,7 +211,6 @@
 			return;
 		}
 		stopLoadingWatch();
-		stopStrike();
 		styleGameDocument();
 		boot.classList.add("hidden");
 		window.setTimeout(function () {
@@ -364,7 +290,6 @@
 
 	configureTelegram();
 	positionMiner(0);
-	startStrike();
 	window.addEventListener("resize", function () {
 		positionMiner(currentPercent);
 	});

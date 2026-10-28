@@ -35,118 +35,29 @@
 				scrolling="no"
 				tabindex="0"></iframe>
 			<div id="boot" class="boot" aria-live="polite">
-				<div class="boot-scene" id="boot-scene" aria-hidden="true">
-					<svg class="boot-cloud" viewBox="0 0 320 120">
-						<defs>
-							<filter id="cloudBlur" x="-30%" y="-30%" width="160%" height="160%">
-								<feGaussianBlur stdDeviation="12" />
-							</filter>
-						</defs>
-						<g filter="url(#cloudBlur)" fill="#151b29" opacity=".9">
-							<ellipse cx="70" cy="46" rx="74" ry="28" />
-							<ellipse cx="155" cy="30" rx="86" ry="32" />
-							<ellipse cx="250" cy="50" rx="72" ry="26" />
-							<ellipse cx="170" cy="66" rx="120" ry="22" />
-						</g>
-					</svg>
+				<!-- Картина загрузки (Qwen): штольня, жила и лампа. Живёт в
+				     web/boot.webp; слои ниже — только свет и воздух поверх неё. -->
+				<div class="boot-art" aria-hidden="true"></div>
+				<div class="boot-warm" aria-hidden="true"></div>
+				<div class="boot-vein-glow" aria-hidden="true"></div>
+				<div class="boot-fog" aria-hidden="true"></div>
+				<div class="boot-dust" aria-hidden="true"></div>
 
-					<svg class="boot-crystal" id="boot-crystal" viewBox="0 0 240 180">
-						<defs>
-							<linearGradient id="crystalA" x1="0" y1="0" x2="1" y2="1">
-								<stop offset="0" stop-color="#e6feff" />
-								<stop offset=".45" stop-color="#7fe9ff" />
-								<stop offset="1" stop-color="#2f7fd6" />
-							</linearGradient>
-							<linearGradient id="crystalB" x1="0" y1="0" x2="1" y2="1">
-								<stop offset="0" stop-color="#f3e6ff" />
-								<stop offset=".5" stop-color="#b98aff" />
-								<stop offset="1" stop-color="#5a3ac9" />
-							</linearGradient>
-							<linearGradient id="crystalC" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="0" stop-color="#ffe7a6" />
-								<stop offset="1" stop-color="#d9a441" />
-							</linearGradient>
-							<filter id="crystalGlow" x="-50%" y="-50%" width="200%" height="200%">
-								<feGaussianBlur stdDeviation="4" result="b" />
-								<feMerge>
-									<feMergeNode in="b" />
-									<feMergeNode in="SourceGraphic" />
-								</feMerge>
-							</filter>
-						</defs>
-						<path d="M12 172 L28 126 L62 108 L98 116 L124 100 L158 112 L190 104 L222 136 L230 172 Z" fill="#0f1420" />
-						<path d="M26 128 L62 110 L98 118 L124 102 L158 114 L190 106 L220 138" fill="none" stroke="#243048" stroke-width="3" />
-						<path d="M42 156 C 76 136, 96 124, 122 118 S 186 124, 210 144" fill="none" stroke="url(#crystalC)" stroke-width="3" opacity=".65" />
-						<g class="vein" filter="url(#crystalGlow)">
-							<polygon points="76,140 86,62 100,104 94,150" fill="url(#crystalA)" />
-							<polygon points="99,146 112,48 128,94 118,154" fill="url(#crystalA)" opacity=".92" />
-							<polygon points="120,150 138,70 154,112 142,158" fill="url(#crystalB)" />
-							<polygon points="58,158 68,108 80,140 74,164" fill="url(#crystalA)" opacity=".75" />
-							<polygon points="146,158 160,104 174,138 166,166" fill="url(#crystalB)" opacity=".8" />
-							<polygon points="86,70 92,62 98,104 90,96" fill="#f4ffff" opacity=".55" />
-							<polygon points="112,58 118,50 126,94 118,84" fill="#f4ffff" opacity=".5" />
-							<polygon points="138,78 144,70 152,112 144,102" fill="#f4ffff" opacity=".45" />
-						</g>
-						<g class="glints" fill="#eaffff">
-							<circle cx="88" cy="60" r="2.6" />
-							<circle cx="114" cy="46" r="3" />
-							<circle cx="140" cy="68" r="2.4" />
-						</g>
-					</svg>
-
-					<svg class="boot-pickaxe" id="boot-pickaxe" viewBox="0 0 180 180">
-						<g class="pick">
-							<rect x="84" y="24" width="14" height="138" rx="7" fill="#7a4a24" transform="rotate(12 91 93)" />
-							<path d="M16 54 Q88 6 164 44 L154 70 Q88 40 26 78 Z" fill="#c9d2df" />
-							<path d="M30 62 Q88 24 150 54 L146 60 Q88 34 36 70 Z" fill="#eef3fb" opacity=".75" />
-							<path d="M82 34 L98 34 L100 54 L84 54 Z" fill="#d9a441" opacity=".9" />
-						</g>
-					</svg>
-
-					<div class="boot-impact" id="boot-impact"></div>
-					<div class="boot-particles" id="boot-particles"></div>
-				</div>
-
-				<div class="boot-brand">
+				<header class="boot-brand">
 					<p class="boot-eyebrow">DARK LODE</p>
 					<h1 class="boot-title">Тёмная жила</h1>
 					<p class="boot-sub">Пошаговый рогалик про раскопки</p>
-				</div>
+				</header>
 
-				<div class="boot-track" id="boot-bar">
-					<div class="boot-rail" aria-hidden="true"></div>
-					<div class="boot-fill" id="boot-fill"></div>
-					<div class="boot-miner" id="boot-miner" aria-hidden="true">
-						<svg viewBox="0 0 64 90">
-							<g fill="#111827" stroke="#2b3a52" stroke-width="1">
-								<circle cx="31" cy="15" r="8" />
-								<path d="M23 24 L41 24 L45 48 L40 53 L38 72 L32 72 L31 54 L29 54 L27 72 L21 72 L19 48 Z" />
-								<path d="M22 27 L14 42 L18 47 L25 34 Z" />
-								<path d="M42 27 L50 42 L46 47 L39 34 Z" />
-								<path class="miner-leg miner-leg-a" d="M24 50 L30 50 L30 76 L24 76 Z" />
-								<path class="miner-leg miner-leg-b" d="M34 50 L40 50 L40 76 L34 76 Z" />
-							</g>
-							<path d="M41 24 L57 8" stroke="#6b4524" stroke-width="4" stroke-linecap="round" />
-							<path d="M51 4 L62 12" stroke="#b9c2cf" stroke-width="4" stroke-linecap="round" />
-							<path d="M23 12 Q25 3 31 3 Q38 3 40 12 L40 16 L23 16 Z" fill="#d9a441" />
-							<circle class="miner-lamp" cx="52" cy="50" r="4" fill="#ffd36a" />
-							<path d="M46 46 L52 50" stroke="#d9a441" stroke-width="2" />
-						</svg>
+				<footer class="boot-foot">
+					<div class="boot-track" id="boot-bar">
+						<div class="boot-rail" aria-hidden="true"></div>
+						<div class="boot-fill" id="boot-fill"></div>
+						<div class="boot-miner" id="boot-miner" aria-hidden="true"></div>
 					</div>
-					<div class="boot-mine" id="boot-mine" aria-hidden="true">
-						<svg viewBox="0 0 80 92">
-							<path d="M8 90 L8 38 Q8 8 40 8 Q72 8 72 38 L72 90 Z" fill="#04060b" stroke="#3a2a18" stroke-width="4" />
-							<path d="M16 90 L16 40 Q16 18 40 18 Q64 18 64 40 L64 90" fill="#0d111a" />
-							<rect x="2" y="30" width="8" height="60" fill="#5a3a1e" />
-							<rect x="70" y="30" width="8" height="60" fill="#5a3a1e" />
-							<rect x="2" y="26" width="76" height="8" fill="#6b4524" />
-							<circle class="mine-lamp" cx="68" cy="40" r="5" fill="#ffcf6a" />
-							<path d="M64 33 L73 33 L71 40 L66 40 Z" fill="#d9a441" />
-						</svg>
-					</div>
-				</div>
+					<p class="boot-progress" id="boot-progress">Загрузка…</p>
+				</footer>
 
-				<p class="boot-progress" id="boot-progress">Загрузка…</p>
 				<div class="boot-flash" id="boot-flash" aria-hidden="true"></div>
 			</div>
 		</div>
