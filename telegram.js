@@ -3,8 +3,8 @@
  *
  * Оболочка держит только Telegram-часть: разворачивает окно, красит системные
  * панели, отдаёт iframe ровно безопасную зону и снимает свою заставку, когда
- * документ игры загрузился. Сама игра остаётся обычной web-сборкой Godot и
- * про Telegram ничего не знает — её можно открыть и в браузере напрямую.
+ * документ игры загрузился. Игра остаётся обычной web-сборкой Godot: без
+ * initData она работает офлайн, как в обычном браузере.
  */
 (function () {
 	"use strict";
@@ -81,6 +81,23 @@
 		}
 	}
 
+	/*
+	 * initData — удостоверение пользователя для бэкенда. Оболочка и iframe
+	 * одного origin, поэтому игра читает строку из sessionStorage. В логи
+	 * и URL она не попадает. ?tgdebug=1 не стирает тестовую строку.
+	 */
+	function rememberInitData() {
+		try {
+			if (tg && tg.initData) {
+				sessionStorage.setItem("darklode_init_data", tg.initData);
+			} else if (!/[?&]tgdebug=1(?:&|$)/.test(window.location.search)) {
+				sessionStorage.removeItem("darklode_init_data");
+			}
+		} catch (error) {
+			/* приватный режим или отключённое хранилище */
+		}
+	}
+
 	function configureTelegram() {
 		if (!tg) {
 			return;
@@ -92,6 +109,7 @@
 		} catch (error) {
 			/* окно уже развёрнуто */
 		}
+		rememberInitData();
 		applyColors();
 		applyInsets();
 

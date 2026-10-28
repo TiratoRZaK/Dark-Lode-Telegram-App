@@ -17,6 +17,16 @@
 			if (window.Telegram && Telegram.WebApp) {
 				Telegram.WebApp.ready();
 				Telegram.WebApp.expand();
+				// Оболочка и игра — один origin; игра читает строку из
+				// sessionStorage. initData не попадает ни в URL, ни в логи.
+				// ?tgdebug=1 оставляет тестовую строку для локальной проверки.
+				if (Telegram.WebApp.initData) {
+					sessionStorage.setItem("darklode_init_data", Telegram.WebApp.initData);
+				} else if (!/[?&]tgdebug=1(?:&|$)/.test(location.search)) {
+					sessionStorage.removeItem("darklode_init_data");
+				}
+			} else if (!/[?&]tgdebug=1(?:&|$)/.test(location.search)) {
+				sessionStorage.removeItem("darklode_init_data");
 			}
 		} catch (error) {
 			/* страница откроется и без Telegram */
