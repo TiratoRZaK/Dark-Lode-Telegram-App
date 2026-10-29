@@ -109,9 +109,50 @@ body {
 			<div id="status-notice"></div>
 		</div>
 
+		<script>
+(function () {
+	var HASHES = {"index.wasm": "26b61ce95247012a", "index.pck": "68144940bb2ec307"};
+	if (!window.fetch || !window.caches) return;
+	var CACHE = "darklode-game";
+	var netFetch = window.fetch.bind(window);
+	function fileName(input) {
+		var url = typeof input === "string" ? input : (input && input.url) || "";
+		var full = new URL(url, location.href);
+		if (full.origin !== location.origin) return "";
+		return full.pathname.split("/").pop();
+	}
+	function keyOf(name) {
+		return new URL(name + "?h=" + HASHES[name], location.href).href;
+	}
+	var opened = caches.open(CACHE).then(function (cache) {
+		cache.keys().then(function (keys) {
+			keys.forEach(function (req) {
+				var name = new URL(req.url).pathname.split("/").pop();
+				if (!HASHES[name] || req.url !== keyOf(name)) cache.delete(req);
+			});
+		}).catch(function () {});
+		return cache;
+	});
+	window.fetch = function (input, init) {
+		var name = "";
+		try { name = fileName(input); } catch (e) { name = ""; }
+		if (!HASHES[name]) return netFetch(input, init);
+		var key = keyOf(name);
+		return opened.then(function (cache) {
+			return cache.match(key, { ignoreVary: true }).then(function (hit) {
+				if (hit) return hit;
+				return netFetch(input, init).then(function (response) {
+					if (response.ok) cache.put(key, response.clone()).catch(function () {});
+					return response;
+				});
+			});
+		}).catch(function () { return netFetch(input, init); });
+	};
+})();
+</script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":28328928,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":25400568,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
