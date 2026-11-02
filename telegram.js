@@ -21,6 +21,11 @@
 	var loadingTimer = 0;
 	var currentPercent = 0;
 	var finishing = false;
+	// Подсказка, если прогресс замер: на телефоне движок может десятки секунд
+	// собирать wasm, и полоса стоит на месте — это не зависание.
+	var lastShownPercent = -1;
+	var lastProgressAt = 0;
+	var slowHintShown = false;
 
 	var BG = "#0b0d14";
 	// Игра портретная; на десктопе Telegram окно и так узкое, а в браузере
@@ -198,9 +203,21 @@
 			return;
 		}
 		currentPercent = Math.max(0, Math.min(100, percent));
+		var shown = Math.round(currentPercent);
+		if (shown !== lastShownPercent) {
+			lastShownPercent = shown;
+			lastProgressAt = performance.now();
+			slowHintShown = false;
+		}
 		bootFill.style.width = currentPercent + "%";
 		bootProgress.textContent =
-			currentPercent > 0 ? "Загрузка " + Math.round(currentPercent) + "%" : "Загрузка…";
+			currentPercent > 0 ? "Загрузка " + shown + "%" : "Загрузка…";
+		if (!slowHintShown && currentPercent < 100 && lastProgressAt > 0 &&
+				performance.now() - lastProgressAt > 20000) {
+			slowHintShown = true;
+			bootProgress.textContent = "Загрузка " + shown +
+				"% · готовим игру, это может занять минуту";
+		}
 		positionMiner(currentPercent);
 		if (currentPercent >= 100) {
 			finishBoot();
