@@ -323,6 +323,254 @@
 		}, 450);
 	}
 
+	/*
+	 * Web Push для игры (03.11).
+	 *
+	 * Игра в iframe зовёт window.parent.__darkLodePush.state/subscribe/
+	 * unsubscribe; промис из Godot не вернуть, поэтому ответы приходят сюда же
+	 * как обычные объекты. Подписку браузера (endpoint + ключи) игра отдаёт
+	 * своему серверу по WebSocket — сама оболочка на бэкенд не ходит.
+	 *
+	 * В Telegram Mini App системных push нет: там уведомления шлёт бот, поэтому
+	 * мост честно отвечает telegram и ничего не спрашивает у браузера. На
+	 * http-адресе Push API недоступен; в остальных случаях показываем причину,
+	 * а не молчаливый отказ.
+	 */
+	var PUSH_SCOPE = "sw.js";
+	var PUSH_PERMISSION_WAIT = 20000;
+	var PUSH_READY_WAIT = 15000;
+
+	function inTelegram() {
+		return !!(tg && (tg.initData || (tg.platform && tg.platform !== "unknown")));
+	}
+
+	function pushState() {
+		if (inTelegram()) {
+			return { available: false, reason: "telegram", permission: "" };
+		}
+		if (!window.isSecureContext) {
+			return { available: false, reason: "insecure", permission: "" };
+		}
+		if (!("serviceWorker" in navigator) || !("PushManager" in window) ||
+				typeof window.Notification !== "function") {
+			return { available: false, reason: "unsupported", permission: "" };
+		}
+		return {
+			available: true,
+			reason: "ready",
+			permission: String(window.Notification.permission || "default"),
+		};
+	}
+
+	function pushFail(code) {
+		return { ok: false, error: String(code || "unsupported") };
+	}
+
+	function pushCode(error) {
+		if (error && error.ok === false && error.error) {
+			return String(error.error);
+		}
+		var name = error && error.name ? String(error.name) : "";
+		if (name === "NotAllowedError" || name === "PermissionDeniedError" ||
+				name === "InvalidStateError") {
+			return "denied";
+		}
+		if (name === "NotSupportedError") {
+			return "unsupported";
+		}
+		if (name === "SecurityError") {
+			return "insecure";
+		}
+		if (name === "AbortError") {
+			return "timeout";
+		}
+		return "unsupported";
+	}
+
+	function pushWithTimeout(promise, milliseconds, code) {
+		return new Promise(function (resolve, reject) {
+			var timer = window.setTimeout(function () {
+				reject(pushFail(code || "timeout"));
+			}, milliseconds);
+			promise.then(function (value) {
+				window.clearTimeout(timer);
+				resolve(value);
+			}, function (error) {
+				window.clearTimeout(timer);
+				reject(error);
+			});
+		});
+	}
+
+	function urlBase64Bytes(value) {
+		var text = String(value || "").trim().replace(/-/g, "+").replace(/_/g, "/");
+		while (text.length % 4) {
+			text += "=";
+		}
+		var binary = window.atob(text);
+		var bytes = new Uint8Array(binary.length);
+		for (var i = 0; i < binary.length; i++) {
+			bytes[i] = binary.charCodeAt(i);
+		}
+		return bytes;
+	}
+
+	function bytesBase64Url(buffer) {
+		if (!buffer) {
+			return "";
+		}
+		var bytes = new Uint8Array(buffer);
+		var binary = "";
+		for (var i = 0; i < bytes.length; i++) {
+			binary += String.fromCharCode(bytes[i]);
+		}
+		return window.btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+	}
+
+	function pushSubscriptionJson(subscription) {
+		var endpoint = String((subscription && subscription.endpoint) || "");
+		var keys = {};
+		try {
+			var json = subscription.toJSON ? subscription.toJSON() : null;
+			if (json && json.keys) {
+				keys = json.keys;
+			}
+		} catch (error) {
+			/* toJSON есть не везде — соберём ключи вручную */
+		}
+		if ((!keys || !keys.p256dh || !keys.auth) && subscription.getKey) {
+			keys = {
+				p256dh: bytesBase64Url(subscription.getKey("p256dh")),
+				auth: bytesBase64Url(subscription.getKey("auth")),
+			};
+		}
+		return {
+			ok: true,
+			endpoint: endpoint,
+			keys: {
+				p256dh: String((keys && keys.p256dh) || ""),
+				auth: String((keys && keys.auth) || ""),
+			},
+			user_agent: String(navigator.userAgent || ""),
+			permission: String(window.Notification.permission || ""),
+		};
+	}
+
+	function pushRegistration() {
+		if (!("serviceWorker" in navigator)) {
+			return Promise.reject(pushFail("unsupported"));
+		}
+		var registered;
+		try {
+			registered = navigator.serviceWorker.register(PUSH_SCOPE);
+		} catch (error) {
+			return Promise.reject(pushFail("no_service_worker"));
+		}
+		return pushWithTimeout(registered, PUSH_READY_WAIT, "no_service_worker")
+			.then(function () {
+				return pushWithTimeout(navigator.serviceWorker.ready,
+					PUSH_READY_WAIT, "no_service_worker");
+			});
+	}
+
+	function pushSubscribe(vapidKey) {
+		var state = pushState();
+		if (!state.available) {
+			return Promise.resolve(pushFail(state.reason || "unsupported"));
+		}
+		if (!vapidKey) {
+			return Promise.resolve(pushFail("missing"));
+		}
+		var permission = String(window.Notification.permission || "default");
+		if (permission === "denied") {
+			return Promise.resolve(pushFail("denied"));
+		}
+		// Спрашиваем разрешение сразу, пока клик ещё считается жестом
+		// пользователя: после регистрации воркера браузер может его не зачесть.
+		var asked;
+		if (permission === "granted") {
+			asked = Promise.resolve(permission);
+		} else {
+			try {
+				asked = Promise.resolve(window.Notification.requestPermission());
+			} catch (error) {
+				asked = Promise.reject(pushFail("denied"));
+			}
+		}
+		return pushRegistration().then(function (registration) {
+			return pushWithTimeout(asked, PUSH_PERMISSION_WAIT, "timeout")
+				.then(function (result) {
+					if (String(result) !== "granted") {
+						return pushFail("denied");
+					}
+					var applicationServerKey;
+					try {
+						applicationServerKey = urlBase64Bytes(vapidKey);
+					} catch (error) {
+						return pushFail("bad_key");
+					}
+					if (!applicationServerKey || applicationServerKey.length < 32) {
+						return pushFail("bad_key");
+					}
+					return registration.pushManager.getSubscription().then(function (existing) {
+						if (existing) {
+							// Этот браузер уже подписан: сервер обновит строку по
+							// endpoint, повторная подписка не нужна.
+							return pushSubscriptionJson(existing);
+						}
+						return registration.pushManager.subscribe({
+							userVisibleOnly: true,
+							applicationServerKey: applicationServerKey,
+						}).then(pushSubscriptionJson);
+					});
+				});
+		}).catch(function (error) {
+			return pushFail(pushCode(error));
+		});
+	}
+
+	function pushUnsubscribe() {
+		var state = pushState();
+		if (!state.available) {
+			// В Telegram и старых браузерах подписки нет — для игры это успех:
+			// отписка лишь убирает возможную строку на сервере.
+			return Promise.resolve({ ok: true, endpoint: "" });
+		}
+		return pushRegistration().then(function (registration) {
+			return registration.pushManager.getSubscription();
+		}).then(function (subscription) {
+			if (!subscription) {
+				return { ok: true, endpoint: "" };
+			}
+			var endpoint = String(subscription.endpoint || "");
+			return subscription.unsubscribe().then(function () {
+				return { ok: true, endpoint: endpoint };
+			});
+		}).catch(function (error) {
+			return pushFail(pushCode(error));
+		});
+	}
+
+	function registerPushWorker() {
+		if (inTelegram() || !pushState().available) {
+			return;
+		}
+		try {
+			navigator.serviceWorker.register(PUSH_SCOPE).catch(function () {
+				/* без воркера push просто недоступен — загрузку не ломаем */
+			});
+		} catch (error) {
+			/* то же */
+		}
+	}
+
+	window.__darkLodePush = {
+		state: pushState,
+		subscribe: pushSubscribe,
+		unsubscribe: pushUnsubscribe,
+	};
+
+	registerPushWorker();
 	configureTelegram();
 	positionMiner(0);
 	window.addEventListener("resize", function () {
