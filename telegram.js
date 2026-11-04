@@ -26,6 +26,9 @@
 	var lastShownPercent = -1;
 	var lastProgressAt = 0;
 	var slowHintShown = false;
+	// Этап от Godot: «Достаём сохранение…», «Сверяемся с посёлком…».
+	// Пока он задан, проценты под полосой не печатаем.
+	var bootStage = "";
 
 	var BG = "#0b0d14";
 	// Игра портретная; на десктопе Telegram окно и так узкое, а в браузере
@@ -210,17 +213,24 @@
 			slowHintShown = false;
 		}
 		bootFill.style.width = currentPercent + "%";
-		bootProgress.textContent =
-			currentPercent > 0 ? "Загрузка " + shown + "%" : "Загрузка…";
-		if (!slowHintShown && currentPercent < 100 && lastProgressAt > 0 &&
+		bootProgress.textContent = bootStage ? bootStage :
+			(currentPercent > 0 ? "Загрузка " + shown + "%" : "Загрузка…");
+		if (!bootStage && !slowHintShown && currentPercent < 100 && lastProgressAt > 0 &&
 				performance.now() - lastProgressAt > 20000) {
 			slowHintShown = true;
 			bootProgress.textContent = "Загрузка " + shown +
 				"% · готовим игру, это может занять минуту";
 		}
 		positionMiner(currentPercent);
-		if (currentPercent >= 100) {
-			finishBoot();
+		// Заставку снимает игра, когда титул готов: иначе 100% висело бы
+		// отдельно от готовности (задача 1).
+	}
+
+	// Godot сообщает этап загрузки сам: подпись под полосой — это он.
+	function setStage(text) {
+		bootStage = String(text || "");
+		if (bootProgress) {
+			bootProgress.textContent = bootStage || "Загрузка 100%";
 		}
 	}
 
@@ -579,6 +589,7 @@
 	// Небольшой отладочный хук: удобно проверить заставку локально.
 	window.__darkLodeBoot = {
 		progress: setProgress,
+		stage: setStage,
 		finish: finishBoot,
 		remove: removeBoot,
 	};
