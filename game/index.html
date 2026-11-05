@@ -20,6 +20,8 @@ body {
 
 #canvas {
 	display: block;
+	width: 100% !important;
+	height: 100% !important;
 }
 
 #canvas:focus {
@@ -111,7 +113,7 @@ body {
 
 		<script>
 (function () {
-	var HASHES = {"index.wasm": "26b61ce95247012a", "index.pck": "2a9276fdea4e93ef"};
+	var HASHES = {"index.wasm": "26b61ce95247012a", "index.pck": "11f9b7363f033176"};
 	if (!window.fetch || !window.caches) return;
 	var CACHE = "darklode-game";
 	var netFetch = window.fetch.bind(window);
@@ -152,8 +154,11 @@ body {
 </script>
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":32289120,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":32308056,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
+// Телефон: внутреннее разрешение 720×1280 вместо 1080–1440.
+const __physicalWidth = Math.round(window.innerWidth * (window.devicePixelRatio || 1));
+if (__physicalWidth > 760) GODOT_CONFIG.canvasResizePolicy = 1;
 const engine = new Engine(GODOT_CONFIG);
 
 (function () {

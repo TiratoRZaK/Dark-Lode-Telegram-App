@@ -8,6 +8,9 @@
 	<meta name="color-scheme" content="dark" />
 	<meta name="description" content="Пошаговый extraction-рогалик про раскопки. Telegram Mini App." />
 	<link rel="icon" type="image/png" href="game/index.icon.png" />
+	<!-- Первая картинка должна появиться до JS и до движка: не ждём,
+	     пока браузер дойдёт до фонового изображения в styles.css. -->
+	<link rel="preload" as="image" href="boot.webp" type="image/webp" />
 	<!-- Локальная копия официального SDK. В мобильных сетях запрос к
 	     telegram.org может висеть десятки секунд, а до WebApp.ready()
 	     Telegram показывает пустой экран и свою синюю полосу. -->
@@ -39,7 +42,7 @@
 		<div id="frame">
 			<iframe
 				id="game"
-				src="game/index.html?v=20261105-005111"
+				src="game/index.html?v=20261105-104103"
 				title="Тёмная жила"
 				allow="autoplay; fullscreen; gamepad; clipboard-write"
 				scrolling="no"
