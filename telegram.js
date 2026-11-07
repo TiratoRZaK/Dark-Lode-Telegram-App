@@ -204,15 +204,15 @@
 		}
 		var track = bootBar.clientWidth;
 		var miner = bootMiner.offsetWidth;
-		var max = Math.max(0, track - miner);
-		if (max <= 0) {
+		if (track <= 0 || miner <= 0) {
 			return;
 		}
 		// Огонёк стоит центром ровно на конце заливки и берёт тот же
 		// процент. Своего хода у него нет: догонять полоску ему нечем.
+		// К краям трека не прижимаем: из-за этого на первых и последних
+		// процентах огонёк отрывался от кончика и обгонял шкалу.
 		var x = (percent / 100) * track - miner / 2;
-		bootMiner.style.transform =
-			"translateX(" + Math.max(0, Math.min(max, x)) + "px)";
+		bootMiner.style.transform = "translateX(" + x + "px)";
 	}
 
 	function progressLabel(shown) {
