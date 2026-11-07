@@ -101,7 +101,8 @@ body {
 	transition: opacity 0.35s ease;
 	/* Страховка на случай, если telegram.org недоступен и telegram.js
 	 * не успел снять заставку: игра всё равно станет видна. Обычно
-	 * заставку снимает watchLoading(), как только Godot начал игру. */
+	 * заставку снимает сигнал готовности из игры (__darkLodeBoot.finish),
+	 * когда титул уже показан. */
 	animation: boot-fallback 0.4s ease 120s forwards;
 }
 

@@ -2,9 +2,9 @@
  * Интеграция с Telegram Mini Apps.
  *
  * Оболочка держит только Telegram-часть: разворачивает окно, красит системные
- * панели, отдаёт iframe ровно безопасную зону и снимает свою заставку, когда
- * документ игры загрузился. Игра остаётся обычной web-сборкой Godot: без
- * initData она работает офлайн, как в обычном браузере.
+ * панели, отдаёт iframe ровно безопасную зону и снимает свою заставку по
+ * сигналу готовности из игры — когда титул уже показан. Игра остаётся обычной
+ * web-сборкой Godot: без initData она работает офлайн, как в обычном браузере.
  */
 (function () {
 	"use strict";
@@ -19,8 +19,11 @@
 	var bootProgress = document.getElementById("boot-progress");
 	var bootMiner = document.getElementById("boot-miner");
 	var loadingTimer = 0;
-	var currentPercent = 0;
+	var currentPercent = 0;   // что нарисовано на полосе и где стоит огонёк
+	var downloadPercent = 0;  // сырые проценты скачивания от Godot
 	var finishing = false;
+	var gameReady = false;    // игра подтвердила: титул показан
+	var engineStarted = false; // Godot убрал свой экран, сцена ещё строится
 	// Подсказка, если прогресс замер: на телефоне движок может десятки секунд
 	// собирать wasm, и полоса стоит на месте — это не зависание.
 	var lastShownPercent = -1;
@@ -29,6 +32,10 @@
 	// Этап от Godot: «Достаём сохранение…», «Сверяемся с посёлком…».
 	// Пока он задан, проценты под полосой не печатаем.
 	var bootStage = "";
+	// Сколько полосы отдано скачиванию wasm и pck. Остаток пути — распаковка
+	// архива, сборка сцены и чтение сохранения; его закрывает только сигнал
+	// готовности из игры (_boot_finish в GDScript).
+	var DOWNLOAD_SHARE = 90;
 
 	var BG = "#0b0d14";
 	// Игра портретная; на десктопе Telegram окно и так узкое, а в браузере
@@ -198,10 +205,32 @@
 		var track = bootBar.clientWidth;
 		var miner = bootMiner.offsetWidth;
 		var max = Math.max(0, track - miner);
-		bootMiner.style.transform = "translateX(" + (percent / 100) * max + "px)";
+		if (max <= 0) {
+			return;
+		}
+		// Огонёк стоит центром ровно на конце заливки и берёт тот же
+		// процент. Своего хода у него нет: догонять полоску ему нечем.
+		var x = (percent / 100) * track - miner / 2;
+		bootMiner.style.transform =
+			"translateX(" + Math.max(0, Math.min(max, x)) + "px)";
 	}
 
-	function setProgress(percent) {
+	function progressLabel(shown) {
+		if (bootStage) {
+			return bootStage;
+		}
+		if (gameReady) {
+			return "Загрузка 100%";
+		}
+		// Файлы скачаны, но движок ещё распаковывает архив и строит
+		// сцену: честный этап вместо преждевременных 100 %.
+		if (downloadPercent >= 100) {
+			return "Готовим игру…";
+		}
+		return shown > 0 ? "Загрузка " + shown + "%" : "Загрузка…";
+	}
+
+	function renderProgress(percent) {
 		if (!bootBar || !bootFill || !bootProgress) {
 			return;
 		}
@@ -213,8 +242,7 @@
 			slowHintShown = false;
 		}
 		bootFill.style.width = currentPercent + "%";
-		bootProgress.textContent = bootStage ? bootStage :
-			(currentPercent > 0 ? "Загрузка " + shown + "%" : "Загрузка…");
+		bootProgress.textContent = progressLabel(shown);
 		if (!bootStage && !slowHintShown && currentPercent < 100 && lastProgressAt > 0 &&
 				performance.now() - lastProgressAt > 20000) {
 			slowHintShown = true;
@@ -222,15 +250,31 @@
 				"% · готовим игру, это может занять минуту";
 		}
 		positionMiner(currentPercent);
-		// Заставку снимает игра, когда титул готов и есть что показать:
-		// иначе 100% висело бы отдельно от готовности (задача 1).
+	}
+
+	/*
+	 * Проценты с полосы Godot (status-progress) — это только скачивание
+	 * wasm и pck. После него движок распаковывает пакет, строит сцену и
+	 * читает сохранение — ещё секунды, а на телефоне десятки. Поэтому
+	 * байты занимают первые DOWNLOAD_SHARE процентов, а 100 % ставит лишь
+	 * finishBoot по сигналу готовности из игры.
+	 */
+	function setProgress(percent) {
+		if (gameReady || finishing) {
+			return;
+		}
+		downloadPercent = Math.max(0, Math.min(100, percent));
+		renderProgress(downloadPercent * DOWNLOAD_SHARE / 100);
 	}
 
 	// Godot сообщает этап загрузки сам: подпись под полосой — это он.
 	function setStage(text) {
+		if (finishing) {
+			return;
+		}
 		bootStage = String(text || "");
 		if (bootProgress) {
-			bootProgress.textContent = bootStage || "Загрузка 100%";
+			bootProgress.textContent = progressLabel(Math.round(currentPercent));
 		}
 	}
 
@@ -238,7 +282,9 @@
 		if (finishing || !boot) {
 			return;
 		}
+		gameReady = true;
 		finishing = true;
+		bootStage = "";
 		currentPercent = 100;
 		if (bootFill) {
 			bootFill.style.width = "100%";
@@ -273,7 +319,7 @@
 	}
 
 	/*
-	 * Держим заставку, пока Godot реально не начнёт игру, и читаем его
+	 * Держим заставку, пока Godot реально не покажет титул, и читаем его
 	 * прогресс из iframe (страницы одного origin). Так вместо немого
 	 * спиннера видно «Загрузка 42%». Если доступ к документу запрещён или
 	 * игра упала — заставку всё равно снимаем, чтобы показать ошибку.
@@ -295,7 +341,22 @@
 				}
 				styleGameDocument();
 				if (!doc.getElementById("status")) {
-					finishBoot(); // Godot убрал свой экран — игра пошла
+					// Документ ещё разбирается — #status просто не успел
+					// появиться, это не старт движка.
+					if (doc.readyState === "loading") {
+						return;
+					}
+					// Godot убрал свой экран сразу после callMain, но пакет
+					// ещё распаковывается и сцена строится. 100 % не ставим:
+					// заставку снимет сигнал готовности из игры, а пока
+					// показываем честный этап.
+					stopLoadingWatch();
+					if (!engineStarted) {
+						engineStarted = true;
+						if (!bootStage) {
+							setStage("Готовим игру…");
+						}
+					}
 					return;
 				}
 				var notice = doc.getElementById("status-notice");
@@ -305,7 +366,7 @@
 				}
 				var progress = doc.getElementById("status-progress");
 				if (progress && progress.max > 0) {
-					var percent = Math.round((progress.value / progress.max) * 100);
+					var percent = (progress.value / progress.max) * 100;
 					if (isFinite(percent)) {
 						setProgress(Math.max(0, Math.min(100, percent)));
 					}
