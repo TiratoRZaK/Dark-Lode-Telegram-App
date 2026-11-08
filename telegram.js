@@ -114,6 +114,34 @@
 		}
 	}
 
+	/*
+	 * REV-032: почему на телефоне не включился полный экран. Одна строка в
+	 * консоль: версия клиента, платформа, хотели ли fullscreen, вызывали ли
+	 * requestFullscreen и что ответил клиент. По ней видно, старый это клиент
+	 * (< 8.0, остаётся expand) или отказ уже нового.
+	 */
+	var fullscreenReport = {
+		version: tg ? (tg.version || "") : "",
+		platform: tg ? (tg.platform || "") : "",
+		wanted: wantFullscreen,
+		requested: false,
+		failed: "",
+		isFullscreen: tg ? !!tg.isFullscreen : false
+	};
+
+	function logFullscreen(stage) {
+		if (!tg) {
+			return;
+		}
+		fullscreenReport.isFullscreen = !!tg.isFullscreen;
+		try {
+			console.log("[darklode] fullscreen " + stage + " " +
+				JSON.stringify(fullscreenReport));
+		} catch (error) {
+			/* консоль недоступна — не беда */
+		}
+	}
+
 	function configureTelegram() {
 		if (!tg) {
 			return;
@@ -148,9 +176,15 @@
 		if (wantFullscreen && tg.isVersionAtLeast && tg.isVersionAtLeast("8.0")) {
 			try {
 				tg.requestFullscreen();
+				fullscreenReport.requested = true;
 			} catch (error) {
 				/* останемся в обычном развёрнутом окне */
+				fullscreenReport.failed = "throw: " +
+					(error && error.message ? error.message : String(error));
 			}
+			// Клиент отвечает событием через кадр-другой: без отложенной
+			// проверки в логе остался бы только «запросили».
+			setTimeout(function () { logFullscreen("после запроса"); }, 900);
 			// Ориентацию не фиксируем: lockOrientation() запирает текущую,
 			// а игра, открытая в ландшафте, осталась бы в нём навсегда.
 			// Пользователь может повернуть телефон в портрет сам.
@@ -159,15 +193,24 @@
 		if (typeof tg.onEvent === "function") {
 			tg.onEvent("safeAreaChanged", applyInsets);
 			tg.onEvent("contentSafeAreaChanged", applyInsets);
-			tg.onEvent("fullscreenChanged", applyInsets);
-			tg.onEvent("viewportChanged", applyInsets);
-			tg.onEvent("themeChanged", applyColors);
-			tg.onEvent("fullscreenFailed", function () {
-				// Клиент отказал в полном экране — безопасные зоны остаются
-				// актуальными, просто обновим их ещё раз.
+			tg.onEvent("fullscreenChanged", function () {
+				logFullscreen("смена");
 				applyInsets();
 			});
+			tg.onEvent("viewportChanged", applyInsets);
+			tg.onEvent("themeChanged", applyColors);
+			tg.onEvent("fullscreenFailed", function (event) {
+				// Клиент отказал в полном экране — безопасные зоны остаются
+				// актуальными, просто обновим их ещё раз.
+				fullscreenReport.failed = "событие: " + String(
+					(event && (event.error || event.reason)) || "без причины");
+				logFullscreen("отказ");
+				applyInsets();
+			});
+		} else {
+			fullscreenReport.failed = "onEvent недоступен";
 		}
+		logFullscreen("ready");
 	}
 
 	/*
