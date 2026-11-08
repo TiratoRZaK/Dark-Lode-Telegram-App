@@ -19,6 +19,7 @@
 	var bootProgress = document.getElementById("boot-progress");
 	var bootMiner = document.getElementById("boot-miner");
 	var loadingTimer = 0;
+	var reloadTimer = 0;
 	var currentPercent = 0;   // что нарисовано на полосе и где стоит огонёк
 	var downloadPercent = 0;  // сырые проценты скачивания от Godot
 	var finishing = false;
@@ -250,6 +251,136 @@
 				"% · готовим игру, это может занять минуту";
 		}
 		positionMiner(currentPercent);
+	}
+
+	/*
+	 * Игра — WebGL 2. Старый Telegram или WebView без аппаратного ускорения
+	 * движок не запускают, а Godot показывает английский alert поверх
+	 * заставки (баг из бота #224). Проверяем заранее и объясняем по-русски.
+	 * Пробный контекст сразу отпускаем: движку нужен свой.
+	 */
+	function webgl2Ready() {
+		// ?nowebgl=1 — проверить плашку руками, без старого телефона.
+		if (params.get("nowebgl") === "1") {
+			return false;
+		}
+		try {
+			if (!window.WebGL2RenderingContext) {
+				return false;
+			}
+			var canvas = document.createElement("canvas");
+			var gl = canvas.getContext("webgl2");
+			if (!gl) {
+				return false;
+			}
+			var lose = gl.getExtension("WEBGL_lose_context");
+			if (lose) {
+				lose.loseContext();
+			}
+			return true;
+		} catch (error) {
+			return false;
+		}
+	}
+
+	/* Плашка поверх заставки: заголовок, объяснение и одна кнопка. */
+	function showBootProblem(title, text, actionText, action) {
+		var stage = document.getElementById("stage");
+		if (!stage) {
+			return;
+		}
+		stopLoadingWatch();
+		// Заставку уже сняли — собираем её контейнер заново: иначе причину
+		// негде показать, а игрок останется перед чёрным экраном.
+		if (!boot || !boot.parentNode) {
+			boot = document.createElement("div");
+			boot.className = "boot";
+			boot.id = "boot";
+			boot.setAttribute("aria-live", "polite");
+			stage.appendChild(boot);
+		}
+		boot.classList.remove("done", "hidden");
+		boot.classList.add("problem");
+		var card = document.getElementById("boot-problem");
+		if (!card) {
+			card = document.createElement("section");
+			card.id = "boot-problem";
+			card.className = "boot-problem";
+			card.setAttribute("role", "alert");
+			boot.appendChild(card);
+		}
+		card.hidden = false;
+		card.innerHTML = "";
+		var heading = document.createElement("p");
+		heading.className = "boot-problem-title";
+		heading.textContent = title;
+		card.appendChild(heading);
+		var body = document.createElement("p");
+		body.className = "boot-problem-text";
+		body.textContent = text;
+		card.appendChild(body);
+		var button = document.createElement("button");
+		button.type = "button";
+		button.className = "boot-problem-button";
+		button.textContent = actionText;
+		button.addEventListener("click", action);
+		card.appendChild(button);
+	}
+
+	function restartPage() {
+		window.location.reload();
+	}
+
+	/*
+	 * Потеря графического контекста (#220): Godot зовёт английский alert.
+	 * Перехватываем его внутри iframe (страницы одного origin) и
+	 * перезапускаем игру сами — город и забег живут на сервере.
+	 */
+	function lostGraphics() {
+		if (reloadTimer) {
+			return;
+		}
+		showBootProblem("Графика потеряла связь",
+			"Игра перезапустится сама через несколько секунд — сохранение осталось на сервере.",
+			"Перезапустить сейчас", restartPage);
+		reloadTimer = window.setTimeout(restartPage, 6000);
+	}
+
+	function guardGameGraphics() {
+		if (!frame) {
+			return;
+		}
+		try {
+			var win = frame.contentWindow;
+			var doc = frame.contentDocument;
+			if (!win || !doc) {
+				return;
+			}
+			var nativeAlert = win.alert;
+			win.alert = function (message) {
+				var text = String(message || "");
+				if (/webgl\s*2/i.test(text)) {
+					showBootProblem("Графика не запустилась",
+						"Браузер не дал игре WebGL 2 — так бывает в старом Telegram или при выключенном аппаратном ускорении. Обновите Telegram и попробуйте снова.",
+						"Попробовать снова", restartPage);
+					return;
+				}
+				if (/webgl context lost/i.test(text)) {
+					lostGraphics();
+					return;
+				}
+				nativeAlert.call(win, message);
+			};
+			var canvas = doc.querySelector("canvas");
+			if (canvas) {
+				canvas.addEventListener("webglcontextlost", function (event) {
+					event.preventDefault();
+					lostGraphics();
+				});
+			}
+		} catch (error) {
+			/* документ ещё не готов — обычный alert движка останется */
+		}
 	}
 
 	/*
@@ -656,15 +787,21 @@
 	};
 
 	if (frame) {
-		frame.addEventListener("load", watchLoading);
-		// Скрипт подключён с defer: iframe мог успеть загрузиться раньше,
-		// чем мы повесили обработчик. Тогда начинаем следить сразу.
-		try {
-			if (frame.contentDocument && frame.contentDocument.readyState === "complete") {
+		// Игру не грузим без WebGL 2: иначе движок выдаст английский alert
+		// поверх заставки (баг из бота #224).
+		if (!webgl2Ready()) {
+			showBootProblem("Графика не запустилась",
+				"Телефон не даёт игре WebGL 2 — так бывает в старом Telegram или при выключенном аппаратном ускорении. Обновите Telegram и попробуйте снова.",
+				"Попробовать снова", restartPage);
+		} else {
+			frame.addEventListener("load", function () {
+				guardGameGraphics();
 				watchLoading();
+			});
+			var source = frame.getAttribute("data-src");
+			if (source && !frame.getAttribute("src")) {
+				frame.setAttribute("src", source);
 			}
-		} catch (error) {
-			/* документ ещё не готов — сработает load */
 		}
 		// Клик по оболочке возвращает фокус игре — на десктопе это нужно
 		// для клавиатуры после переключения вкладок.

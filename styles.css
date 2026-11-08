@@ -431,3 +431,73 @@ body {
 		animation: none;
 	}
 }
+
+/* Понятная причина вместо английского alert движка: нет WebGL 2 или
+ * графика потеряла контекст (баги из бота #220, #224). */
+.boot-problem {
+	/* Поверх всего: к моменту потери контекста заставку уже сняли, и
+	 * плашке негде встать в её потоке (#220). */
+	position: fixed;
+	z-index: 20;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	width: min(84vw, 330px);
+	margin: 0;
+	padding: 16px 14px;
+	box-sizing: border-box;
+	border: 1px solid rgba(255, 211, 106, 0.45);
+	border-radius: 14px;
+	background: rgba(10, 8, 6, 0.9);
+	box-shadow: 0 10px 34px rgba(0, 0, 0, 0.55);
+	text-align: center;
+}
+
+#boot.problem {
+	/* Заставку могли уже снять и собрать заново: картина загрузки должна
+	 * остаться, а не чёрный экран. */
+	background: #0b0d14 url("boot.webp") center / cover no-repeat;
+}
+
+.boot-problem[hidden] {
+	display: none;
+}
+
+.boot-problem-title {
+	margin: 0;
+	font-size: 17px;
+	font-weight: 600;
+	color: #ffd36a;
+}
+
+.boot-problem-text {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.45;
+	color: #d6cdbc;
+}
+
+.boot-problem-button {
+	margin-top: 4px;
+	padding: 10px 18px;
+	border: 1px solid rgba(255, 211, 106, 0.6);
+	border-radius: 10px;
+	background: rgba(255, 211, 106, 0.12);
+	color: #ffe7a8;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+/* Пока причина на экране, полоса и проценты не крутятся вхолостую. */
+.boot.problem .boot-track,
+.boot.problem .boot-progress {
+	display: none;
+}
+
+.boot.problem .boot-miner {
+	display: none;
+}

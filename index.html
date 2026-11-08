@@ -40,9 +40,12 @@
 <body>
 	<main id="stage">
 		<div id="frame">
+			<!-- src ставит telegram.js: сначала проверяем WebGL 2. Если его
+			     нет, игру не грузим вовсе — иначе Godot показывает английский
+			     alert поверх заставки (баг из бота #224). -->
 			<iframe
 				id="game"
-				src="game/index.html?v=20261108-131618"
+				data-src="game/index.html?v=20261108-135518"
 				title="Тёмная жила"
 				allow="autoplay; fullscreen; gamepad; clipboard-write"
 				scrolling="no"
@@ -61,6 +64,14 @@
 					<h1 class="boot-title">Тёмная жила</h1>
 					<p class="boot-sub">Пошаговый рогалик про раскопки</p>
 				</header>
+
+				<!-- Понятная причина вместо английского alert от движка:
+				     нет WebGL 2 или графика потеряла контекст. -->
+				<section class="boot-problem" id="boot-problem" role="alert" hidden>
+					<p class="boot-problem-title" id="boot-problem-title"></p>
+					<p class="boot-problem-text" id="boot-problem-text"></p>
+					<button type="button" class="boot-problem-button" id="boot-problem-button"></button>
+				</section>
 
 				<footer class="boot-foot">
 					<div class="boot-track" id="boot-bar">
