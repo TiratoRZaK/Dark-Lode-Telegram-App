@@ -293,7 +293,9 @@ body {
 	height: 16px;
 	border-radius: 50%;
 	z-index: 3;
-	background: radial-gradient(circle, #fffbe8 0 22%, #ffd36a 45%, rgba(255, 203, 90, 0) 72%);
+	/* Ядро крупнее прежнего: маленькая искра читалась отдельной точкой
+	 * рядом с полосой, а не её концом (баг #211). */
+	background: radial-gradient(circle, #fffbe8 0 38%, #ffd36a 62%, rgba(255, 203, 90, 0) 80%);
 	box-shadow: 0 0 16px rgba(255, 215, 120, 0.85);
 	transition: transform 0.35s ease, opacity 0.5s ease;
 	will-change: transform;
