@@ -134,11 +134,23 @@
 			return;
 		}
 		fullscreenReport.isFullscreen = !!tg.isFullscreen;
+		fullscreenReport.stage = stage;
 		try {
 			console.log("[darklode] fullscreen " + stage + " " +
 				JSON.stringify(fullscreenReport));
 		} catch (error) {
 			/* консоль недоступна — не беда */
+		}
+		// Консоль Telegram на Android недоступна: та же строка ждёт игру в
+		// sessionStorage (оболочка и iframe одного origin) — REV-038.
+		try {
+			sessionStorage.setItem("darklode_fullscreen",
+				JSON.stringify(fullscreenReport));
+			if (params.get("debug") === "1") {
+				sessionStorage.setItem("darklode_debug", "1");
+			}
+		} catch (error) {
+			/* приватный режим — строки на экране не будет */
 		}
 	}
 
