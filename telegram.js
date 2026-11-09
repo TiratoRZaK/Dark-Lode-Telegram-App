@@ -74,6 +74,20 @@
 		}
 	}
 
+	/*
+	 * Ширина видимой зоны. В Telegram layout viewport бывает шире экрана
+	 * (innerWidth 720 при видимых 591): iframe получал 720, и правая часть
+	 * игры уезжала за край (баг из бота #259). visualViewport.width — то,
+	 * что действительно видно.
+	 */
+	function applyViewport() {
+		var vv = window.visualViewport;
+		var width = vv && vv.width ? vv.width : window.innerWidth;
+		root.style.setProperty("--app-width", Math.max(1, Math.round(width)) + "px");
+		root.style.setProperty("--stage-justify",
+			width < window.innerWidth - 1 ? "flex-start" : "center");
+	}
+
 	function applyColors() {
 		if (!tg) {
 			return;
@@ -207,9 +221,13 @@
 			tg.onEvent("contentSafeAreaChanged", applyInsets);
 			tg.onEvent("fullscreenChanged", function () {
 				logFullscreen("смена");
+				applyViewport();
 				applyInsets();
 			});
-			tg.onEvent("viewportChanged", applyInsets);
+			tg.onEvent("viewportChanged", function () {
+				applyViewport();
+				applyInsets();
+			});
 			tg.onEvent("themeChanged", applyColors);
 			tg.onEvent("fullscreenFailed", function (event) {
 				// Клиент отказал в полном экране — безопасные зоны остаются
@@ -828,11 +846,17 @@
 	};
 
 	registerPushWorker();
+	applyViewport();
 	configureTelegram();
 	positionMiner(0);
 	window.addEventListener("resize", function () {
+		applyViewport();
 		positionMiner(currentPercent);
 	});
+	if (window.visualViewport) {
+		window.visualViewport.addEventListener("resize", applyViewport);
+		window.visualViewport.addEventListener("scroll", applyViewport);
+	}
 	// Небольшой отладочный хук: удобно проверить заставку локально.
 	window.__darkLodeBoot = {
 		progress: setProgress,

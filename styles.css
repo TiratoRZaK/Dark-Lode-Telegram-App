@@ -49,7 +49,10 @@ body {
 	inset: var(--inset-top) var(--inset-right) var(--inset-bottom) var(--inset-left);
 	display: flex;
 	align-items: stretch;
-	justify-content: center;
+	/* На телефоне layout viewport бывает шире видимой зоны (Telegram),
+	   и колонка 720 вылезала за экран. Видимую ширину ставит telegram.js
+	   в --app-width; на десктопе она равна окну и колонка стоит по центру. */
+	justify-content: var(--stage-justify, center);
 	background: var(--bg);
 }
 
@@ -63,7 +66,7 @@ body {
 #frame {
 	position: relative;
 	height: 100%;
-	width: 100%;
+	width: min(100%, calc(var(--app-width, 100vw) - var(--inset-left) - var(--inset-right)));
 	max-width: calc(100vh * 9 / 16);
 	max-width: calc(100dvh * 9 / 16);
 	overflow: hidden;
