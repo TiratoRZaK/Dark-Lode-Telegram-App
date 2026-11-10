@@ -1,11 +1,11 @@
 {
   "name": "Тёмная жила",
-  "version": "20261109-212618",
-  "built_at": "2026-11-09T21:26:18",
-  "commit": "12b15d75",
-  "pck_bytes": 36252288,
+  "version": "20261110-123424",
+  "built_at": "2026-11-10T12:34:24",
+  "commit": "dd2d154a",
+  "pck_bytes": 37466140,
   "game_hashes": {
     "index.wasm": "26b61ce95247012a",
-    "index.pck": "5d8dd9e1c5a30622"
+    "index.pck": "4e3eb5f47141e9a1"
   }
 }
