@@ -115,7 +115,7 @@ body {
 
 		<script>
 (function () {
-	var HASHES = {"index.wasm": "26b61ce95247012a", "index.pck": "5640839dfbc26342"};
+	var HASHES = {"index.wasm": "26b61ce95247012a", "index.pck": "6e7995f0af753088"};
 	if (!window.fetch || !window.caches) return;
 	// v2: в первой версии промах качал файл по голому URL, и HTTP-кеш
 	// браузера (max-age=600 у Pages) мог отдать прошлую сборку — она
@@ -170,16 +170,19 @@ body {
 		<script>
 const GODOT_CONFIG = {"args":[],"canvasResizePolicy":0,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":true,"fileSizes":{"index.pck":40980160,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
-// Канвас: 720 px по ширине, высота — по фактическому соотношению
-// сторон iframe. Игра заполняет кадр по высоте без растяжения и без
-// полосы снизу (360×700 -> 720×1400). Policy 0: движок не навязывает
-// свой размер, а в каждом кадре сверяет canvas.width/height.
+// Канвас: ширина по devicePixelRatio с капом 1.5 (на телефоне
+// 540 вместо 1080 — вчетверо меньше пикселей), высота — по
+// фактическому соотношению сторон iframe. Игра заполняет кадр по
+// высоте без растяжения и без полосы снизу (360×700 -> 540×1050).
+// Policy 0: движок не навязывает свой размер, а в каждом кадре
+// сверяет canvas.width/height.
 const __darkLodeCanvas = document.getElementById('canvas');
 function __darkLodeFitCanvas() {
 	if (!__darkLodeCanvas) return;
 	const viewWidth = window.innerWidth;
 	const viewHeight = window.innerHeight;
-	const width = 720;
+	const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 1.5));
+	const width = Math.min(720, Math.max(360, Math.round(viewWidth * dpr)));
 	const height = (viewWidth > 0 && viewHeight > 0)
 		? Math.max(1, Math.round(width * viewHeight / viewWidth))
 		: 1280; // кадр ещё не разложен — временно 9:16, resize поправит
