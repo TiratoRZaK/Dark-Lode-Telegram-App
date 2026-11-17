@@ -489,6 +489,9 @@
 		gameReady = true;
 		finishing = true;
 		bootStage = "";
+		// Игра уже показала титул: заставка только гаснет, касания её больше
+		// не касаются — иначе первый тап по «Продолжить» терялся в ней.
+		boot.style.pointerEvents = "none";
 		currentPercent = 100;
 		if (bootFill) {
 			bootFill.style.width = "100%";

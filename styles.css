@@ -122,6 +122,13 @@ body {
 		linear-gradient(0deg, rgba(9, 11, 18, 0.88) 0%, rgba(9, 11, 18, 0.44) 15%, transparent 32%);
 }
 
+/* Готово: игра уже под заставкой, касание должно доходить до неё сразу.
+ * Дальше заставку растворяет вспышка (1,15 с) и removeBoot — ждать их
+ * незачем: первое касание по «Продолжить» уходило в этот слой. */
+#boot.done {
+	pointer-events: none;
+}
+
 #boot.hidden {
 	opacity: 0;
 	pointer-events: none;
