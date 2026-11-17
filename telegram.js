@@ -20,6 +20,9 @@
 	var bootMiner = document.getElementById("boot-miner");
 	var loadingTimer = 0;
 	var reloadTimer = 0;
+	// Карточка о потере графики показывается один раз за страницу: событие
+	// webglcontextlost приходит несколько раз подряд.
+	var lostReported = false;
 	var currentPercent = 0;   // что нарисовано на полосе и где стоит огонёк
 	var downloadPercent = 0;  // сырые проценты скачивания от Godot
 	var finishing = false;
@@ -410,13 +413,18 @@
 	 * перезапускаем игру сами — город и забег живут на сервере.
 	 */
 	function lostGraphics() {
-		if (reloadTimer) {
+		// Карточка ждёт тапа игрока, а не перезапускает страницу сама (#220).
+		// Молчаливый перезапуск через 6 с тестер принял за «выкинуло на титул»:
+		// экран не успевал прочитаться. В консоль пишем метку — по ней такой
+		// случай виден в следующем отчёте.
+		console.warn("graphics-lost", new Date().toISOString());
+		if (lostReported) {
 			return;
 		}
+		lostReported = true;
 		showBootProblem("Графика потеряла связь",
-			"Игра перезапустится сама через несколько секунд — сохранение осталось на сервере.",
+			"Игра перезапустится, как только нажмёшь кнопку — сохранение осталось на сервере.",
 			"Перезапустить сейчас", restartPage);
-		reloadTimer = window.setTimeout(restartPage, 6000);
 	}
 
 	function guardGameGraphics() {
