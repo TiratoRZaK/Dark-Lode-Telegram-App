@@ -403,6 +403,30 @@
 		card.appendChild(button);
 	}
 
+
+	// Ключ тестера (решение автора 19.11): ?tester=<ключ> в адресе оболочки или
+	// startapp=tester_<ключ> в Telegram уходит в адрес игры — игра шлёт его при
+	// входе, сервер по нему отдаёт зерно забега для журнала. Нет ключа — адрес
+	// игры прежний.
+	function withTesterKey(source) {
+		var key = "";
+		try {
+			key = new URLSearchParams(location.search).get("tester") || "";
+			if (!key && window.Telegram && Telegram.WebApp && Telegram.WebApp.initDataUnsafe) {
+				var start = Telegram.WebApp.initDataUnsafe.start_param || "";
+				if (start.indexOf("tester_") === 0) {
+					key = start.substring(7);
+				}
+			}
+		} catch (error) {
+			key = "";
+		}
+		if (!/^[A-Za-z0-9_-]{24,128}$/.test(key)) {
+			return source;
+		}
+		return source + (source.indexOf("?") >= 0 ? "&" : "?") + "tester=" + encodeURIComponent(key);
+	}
+
 	function restartPage() {
 		window.location.reload();
 	}
@@ -890,7 +914,7 @@
 			});
 			var source = frame.getAttribute("data-src");
 			if (source && !frame.getAttribute("src")) {
-				frame.setAttribute("src", source);
+				frame.setAttribute("src", withTesterKey(source));
 			}
 		}
 		// Клик по оболочке возвращает фокус игре — на десктопе это нужно

@@ -1,0 +1,50 @@
+{
+  "main": {
+    "file": "index.pck",
+    "bytes": 9309512
+  },
+  "packs": [
+    {
+      "name": "art-core",
+      "file": "packs/art-core-32894772edcd177d.pck",
+      "hash": "32894772edcd177d",
+      "bytes": 10443504,
+      "blocking": true
+    },
+    {
+      "name": "mines",
+      "file": "packs/mines-69dabce396cd57cb.pck",
+      "hash": "69dabce396cd57cb",
+      "bytes": 5427068,
+      "blocking": false
+    },
+    {
+      "name": "doll",
+      "file": "packs/doll-f2c100bc601f8ea5.pck",
+      "hash": "f2c100bc601f8ea5",
+      "bytes": 4303356,
+      "blocking": false
+    },
+    {
+      "name": "music",
+      "file": "packs/music-66da3dc708c2ba1b.pck",
+      "hash": "66da3dc708c2ba1b",
+      "bytes": 3261404,
+      "blocking": false
+    },
+    {
+      "name": "rare",
+      "file": "packs/rare-512418683ad0c607.pck",
+      "hash": "512418683ad0c607",
+      "bytes": 506968,
+      "blocking": false
+    }
+  ],
+  "order": [
+    "art-core",
+    "mines",
+    "doll",
+    "music",
+    "rare"
+  ]
+}
