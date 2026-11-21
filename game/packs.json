@@ -1,14 +1,14 @@
 {
   "main": {
     "file": "index.pck",
-    "bytes": 9599904
+    "bytes": 9715536
   },
   "packs": [
     {
       "name": "art-core",
-      "file": "packs/art-core-19f58830a15efaff.pck",
-      "hash": "19f58830a15efaff",
-      "bytes": 10792240,
+      "file": "packs/art-core-7bc171d122946229.pck",
+      "hash": "7bc171d122946229",
+      "bytes": 11163040,
       "blocking": true
     },
     {
@@ -20,9 +20,9 @@
     },
     {
       "name": "doll",
-      "file": "packs/doll-f2c100bc601f8ea5.pck",
-      "hash": "f2c100bc601f8ea5",
-      "bytes": 4303356,
+      "file": "packs/doll-6d1c7ac128f40b09.pck",
+      "hash": "6d1c7ac128f40b09",
+      "bytes": 5244644,
       "blocking": false
     },
     {
@@ -34,9 +34,9 @@
     },
     {
       "name": "rare",
-      "file": "packs/rare-512418683ad0c607.pck",
-      "hash": "512418683ad0c607",
-      "bytes": 506968,
+      "file": "packs/rare-9d96e2467a3e0cd2.pck",
+      "hash": "9d96e2467a3e0cd2",
+      "bytes": 550776,
       "blocking": false
     }
   ],
