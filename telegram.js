@@ -880,6 +880,39 @@
 		unsubscribe: pushUnsubscribe,
 	};
 
+	// Оплата Telegram Stars (решение 141): игра присылает ссылку счёта, окно
+	// оплаты открывает Telegram, итог (paid, cancelled, failed, pending) кладём
+	// в window.__darkLodePayResult окна игры — Godot забирает его по кадрам.
+	function payResult(frame, value) {
+		try {
+			frame.__darkLodePayResult = value;
+		} catch (error) {
+			/* окно игры недоступно — ответ просто не дойдёт */
+		}
+	}
+
+	window.__darkLodePay = {
+		available: function () {
+			return Boolean(tg && typeof tg.openInvoice === "function" && inTelegram());
+		},
+		open: function (link, frame) {
+			var target = frame || window;
+			if (!tg || typeof tg.openInvoice !== "function") {
+				payResult(target, { status: "failed", error: "missing" });
+				return false;
+			}
+			try {
+				tg.openInvoice(String(link || ""), function (status) {
+					payResult(target, { status: String(status || "failed") });
+				});
+				return true;
+			} catch (error) {
+				payResult(target, { status: "failed", error: String((error && error.message) || error) });
+				return false;
+			}
+		},
+	};
+
 	registerPushWorker();
 	applyViewport();
 	configureTelegram();
