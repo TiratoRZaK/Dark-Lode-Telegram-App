@@ -904,6 +904,7 @@
 	// блок, итог (done, skipped, error) кладём в window.__darkLodeAdResult окна
 	// игры. Награду выдаёт сервер по подтверждению Adsgram (Reward URL).
 	function adResult(frame, value) {
+		if (!value || value.error !== "busy") adBusy = false;
 		try {
 			frame.__darkLodeAdResult = value;
 		} catch (error) {
@@ -915,6 +916,7 @@
 	// приём событий Telegram, а выбор чата (shareMessage) с ним молчал.
 	var ADSGRAM_SRC = "https://sad.adsgram.ai/js/sad.min.js";
 	var adsgramWait = [];
+	var adBusy = false;
 	var adsgramState = "";
 	function withAdsgram(done) {
 		if (window.Adsgram && typeof window.Adsgram.init === "function") {
@@ -948,6 +950,13 @@
 		},
 		show: function (blockId, frame) {
 			var target = frame || window;
+			// Один ролик за раз: повторный вызов, пока идёт загрузка скрипта или
+			// показ, не ставит второй ролик в очередь (жалоба 22.11: «3 подряд»).
+			if (adBusy) {
+				adResult(target, { status: "error", error: "busy" });
+				return false;
+			}
+			adBusy = true;
 			withAdsgram(function (ok) {
 				if (!ok) {
 					adResult(target, { status: "error", error: "missing" });
