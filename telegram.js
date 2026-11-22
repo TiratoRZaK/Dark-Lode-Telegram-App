@@ -10,6 +10,15 @@
 	"use strict";
 
 	var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
+	// Мини-приложение свёрнуто (Bot API 8.0: deactivated) — игра почти не
+	// рисует (view/frame_pacer.gd, айфон грелся 22.11).
+	window.__darkLodeActive = true;
+	try {
+		if (tg && tg.onEvent) {
+			tg.onEvent("activated", function () { window.__darkLodeActive = true; });
+			tg.onEvent("deactivated", function () { window.__darkLodeActive = false; });
+		}
+	} catch (error) {}
 	var params = new URLSearchParams(window.location.search);
 	var root = document.documentElement;
 	var frame = document.getElementById("game");
