@@ -891,6 +891,43 @@
 		}
 	}
 
+	// Ролик за награду Adsgram (решение 141, план шаг 3): игра просит показать
+	// блок, итог (done, skipped, error) кладём в window.__darkLodeAdResult окна
+	// игры. Награду выдаёт сервер по подтверждению Adsgram (Reward URL).
+	function adResult(frame, value) {
+		try {
+			frame.__darkLodeAdResult = value;
+		} catch (error) {
+			/* окно игры недоступно */
+		}
+	}
+
+	window.__darkLodeAds = {
+		available: function () {
+			return Boolean(window.Adsgram && typeof window.Adsgram.init === "function" && inTelegram());
+		},
+		show: function (blockId, frame) {
+			var target = frame || window;
+			if (!window.Adsgram || typeof window.Adsgram.init !== "function") {
+				adResult(target, { status: "error", error: "missing" });
+				return false;
+			}
+			try {
+				window.Adsgram.init({ blockId: String(blockId || "") }).show().then(function (result) {
+					adResult(target, { status: result && result.done ? "done" : "skipped" });
+				}).catch(function (result) {
+					var skipped = result && result.done === false && result.state !== "load";
+					adResult(target, { status: skipped ? "skipped" : "error",
+						error: String((result && result.description) || "") });
+				});
+				return true;
+			} catch (error) {
+				adResult(target, { status: "error", error: String((error && error.message) || error) });
+				return false;
+			}
+		},
+	};
+
 	window.__darkLodePay = {
 		available: function () {
 			return Boolean(tg && typeof tg.openInvoice === "function" && inTelegram());

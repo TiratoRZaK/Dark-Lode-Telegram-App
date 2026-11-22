@@ -15,6 +15,9 @@
 	     telegram.org может висеть десятки секунд, а до WebApp.ready()
 	     Telegram показывает пустой экран и свою синюю полосу. -->
 	<script src="telegram-web-app.js"></script>
+	<!-- Ролики за награду Adsgram (решение 141). async: из России сервер
+	     рекламы может отвечать медленно, загрузку игры он не держит. -->
+	<script src="https://sad.adsgram.ai/js/sad.min.js" async></script>
 	<script>
 		try {
 			if (window.Telegram && Telegram.WebApp) {
@@ -45,7 +48,7 @@
 			     alert поверх заставки (баг из бота #224). -->
 			<iframe
 				id="game"
-				data-src="game/index.html?v=20261122-054830"
+				data-src="game/index.html?v=20261122-055632"
 				title="Тёмная жила"
 				allow="autoplay; fullscreen; gamepad; clipboard-write"
 				scrolling="no"
