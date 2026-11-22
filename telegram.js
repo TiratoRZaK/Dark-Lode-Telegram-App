@@ -902,16 +902,53 @@
 		}
 	}
 
+	// Скрипт Adsgram — только перед первым роликом (баг 416): он оборачивает
+	// приём событий Telegram, а выбор чата (shareMessage) с ним молчал.
+	var ADSGRAM_SRC = "https://sad.adsgram.ai/js/sad.min.js";
+	var adsgramWait = [];
+	var adsgramState = "";
+	function withAdsgram(done) {
+		if (window.Adsgram && typeof window.Adsgram.init === "function") {
+			done(true);
+			return;
+		}
+		adsgramWait.push(done);
+		if (adsgramState === "loading") return;
+		adsgramState = "loading";
+		var script = document.createElement("script");
+		script.src = ADSGRAM_SRC;
+		script.async = true;
+		var finish = function (ok) {
+			adsgramState = ok ? "ready" : "";
+			var list = adsgramWait;
+			adsgramWait = [];
+			for (var i = 0; i < list.length; i++) list[i](ok && !!window.Adsgram);
+		};
+		script.onload = function () { finish(true); };
+		script.onerror = function () { finish(false); };
+		setTimeout(function () { if (adsgramState === "loading") finish(false); }, 20000);
+		document.head.appendChild(script);
+	}
+
 	window.__darkLodeAds = {
 		available: function () {
-			return Boolean(window.Adsgram && typeof window.Adsgram.init === "function" && inTelegram());
+			return inTelegram();
+		},
+		loaded: function () {
+			return Boolean(window.Adsgram);
 		},
 		show: function (blockId, frame) {
 			var target = frame || window;
-			if (!window.Adsgram || typeof window.Adsgram.init !== "function") {
-				adResult(target, { status: "error", error: "missing" });
-				return false;
-			}
+			withAdsgram(function (ok) {
+				if (!ok) {
+					adResult(target, { status: "error", error: "missing" });
+					return;
+				}
+				window.__darkLodeAds._show(blockId, target);
+			});
+			return true;
+		},
+		_show: function (blockId, target) {
 			try {
 				window.Adsgram.init({ blockId: String(blockId || "") }).show().then(function (result) {
 					adResult(target, { status: result && result.done ? "done" : "skipped" });
