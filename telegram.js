@@ -968,9 +968,26 @@
 		},
 		_show: function (blockId, target) {
 			try {
-				window.Adsgram.init({ blockId: String(blockId || "") }).show().then(function (result) {
+				var controller = window.Adsgram.init({ blockId: String(blockId || "") });
+				// «Упс! Нет доступной рекламы» и родня — окно самого SDK: оно
+				// всплывает, только если на событие никто не подписан. Слушаем
+				// сами и отдаём игре no_ad (автор 23.11): при спуске игра молча
+				// идёт дальше, кнопка за ролик гаснет с «Роликов пока нет».
+				var empty = false;
+				["onBannerNotFound", "onNonStopShow", "onTooLongSession"].forEach(function (name) {
+					try {
+						controller.addEventListener(name, function () { empty = true; });
+					} catch (error) {
+						/* старый SDK без события — окно останется */
+					}
+				});
+				controller.show().then(function (result) {
 					adResult(target, { status: result && result.done ? "done" : "skipped" });
 				}).catch(function (result) {
+					if (empty || (result && result.state === "load")) {
+						adResult(target, { status: "no_ad", error: String((result && result.description) || "") });
+						return;
+					}
 					var skipped = result && result.done === false && result.state !== "load";
 					adResult(target, { status: skipped ? "skipped" : "error",
 						error: String((result && result.description) || "") });
