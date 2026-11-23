@@ -1,14 +1,14 @@
 {
   "main": {
     "file": "index.pck",
-    "bytes": 10347112
+    "bytes": 10388912
   },
   "packs": [
     {
       "name": "art-core",
-      "file": "packs/art-core-28eb8a8e76dd1def.pck",
-      "hash": "28eb8a8e76dd1def",
-      "bytes": 11857760,
+      "file": "packs/art-core-dbe0afb3b3b0ee02.pck",
+      "hash": "dbe0afb3b3b0ee02",
+      "bytes": 11863868,
       "blocking": true
     },
     {
