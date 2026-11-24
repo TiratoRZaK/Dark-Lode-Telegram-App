@@ -1,7 +1,7 @@
 {
   "main": {
     "file": "index.pck",
-    "bytes": 10462988
+    "bytes": 10467164
   },
   "packs": [
     {
@@ -20,9 +20,9 @@
     },
     {
       "name": "doll",
-      "file": "packs/doll-6d1c7ac128f40b09.pck",
-      "hash": "6d1c7ac128f40b09",
-      "bytes": 5244644,
+      "file": "packs/doll-f95daab0b41c6f63.pck",
+      "hash": "f95daab0b41c6f63",
+      "bytes": 5443012,
       "blocking": false
     },
     {
