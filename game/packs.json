@@ -1,14 +1,14 @@
 {
   "main": {
     "file": "index.pck",
-    "bytes": 10920180
+    "bytes": 10974008
   },
   "packs": [
     {
       "name": "art-core",
-      "file": "packs/art-core-10a38aefce4b9ac5.pck",
-      "hash": "10a38aefce4b9ac5",
-      "bytes": 12803608,
+      "file": "packs/art-core-db688210493de515.pck",
+      "hash": "db688210493de515",
+      "bytes": 12828516,
       "blocking": true
     },
     {
@@ -34,9 +34,9 @@
     },
     {
       "name": "rare",
-      "file": "packs/rare-9d96e2467a3e0cd2.pck",
-      "hash": "9d96e2467a3e0cd2",
-      "bytes": 550776,
+      "file": "packs/rare-2afbaf5cef7a6986.pck",
+      "hash": "2afbaf5cef7a6986",
+      "bytes": 551048,
       "blocking": false
     }
   ],
